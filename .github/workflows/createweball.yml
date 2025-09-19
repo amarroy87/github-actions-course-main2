@@ -23,4 +23,4 @@ jobs:
         run: az appservice plan create --name myPlan --resource-group github-action-rg --sku B1 --is-linux
 
       - name: Create WebApp
-        run: az webapp create --resource-group github-action-rg --plan myPlan --name appservice-enis --runtime "DOTNETCORE|6.0"
+        run: az webapp create --resource-group github-action-rg --plan myPlan --name appservice-enis12 --runtime "DOTNETCORE|6.0"
