@@ -1,0 +1,92 @@
+name: Create Linux VM
+
+on:
+  workflow_dispatch:   # Manual trigger
+  push:
+    branches:
+      - main
+
+jobs:
+  create-vm:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      # Login to Azure using Service Principal
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Create Resource Group
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name myResourceGroup \
+            --location eastus
+
+      # Create Virtual Network
+      - name: Create Virtual Network
+        run: |
+          az network vnet create \
+            --resource-group myResourceGroup \
+            --name myVnet \
+            --subnet-name mySubnet
+
+      # Create Public IP
+      - name: Create Public IP
+        run: |
+          az network public-ip create \
+            --resource-group myResourceGroup \
+            --name myPublicIP
+
+      # Create Network Security Group + SSH rule
+      - name: Create NSG and Rule
+        run: |
+          az network nsg create \
+            --resource-group myResourceGroup \
+            --name myNSG
+
+          az network nsg rule create \
+            --resource-group myResourceGroup \
+            --nsg-name myNSG \
+            --name allow-ssh \
+            --protocol tcp \
+            --priority 1000 \
+            --destination-port-ranges 22 \
+            --access allow
+
+      # Create Network Interface
+      - name: Create NIC
+        run: |
+          az network nic create \
+            --resource-group myResourceGroup \
+            --name myNIC \
+            --vnet-name myVnet \
+            --subnet mySubnet \
+            --network-security-group myNSG \
+            --public-ip-address myPublicIP
+
+      # Create Linux VM
+      - name: Create Linux VM
+        run: |
+          az vm create \
+            --resource-group myResourceGroup \
+            --name myLinuxVM \
+            --nics myNIC \
+            --image Ubuntu2204 \
+            --admin-username azureuser \
+            --generate-ssh-keys \
+            --authentication-type ssh
+
+      # Output Public IP
+      - name: Get VM Public IP
+        run: |
+          az vm show \
+            --resource-group myResourceGroup \
+            --name myLinuxVM \
+            --show-details \
+            --query publicIps \
+            --output tsv
