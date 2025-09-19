@@ -1,56 +1,29 @@
 name: Create Linux VM
 
 on:
-  workflow_dispatch:   # Manual trigger
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  create-vm:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      # Step 1: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # Upgrade Azure CLI (fixes bugs in GitHub-hosted runners)
-      - name: Upgrade Azure CLI
-        run: |
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-
-      # Login to Azure using Service Principal
+      # Step 2: Login to Azure
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Create Resource Group
-      - name: Create Resource Group
-        run: |
-          az group create \
-            --name myResourceGroup \
-            --location eastus
-
-      # Create Linux VM (auto-creates network resources)
+      # Step 3: Create Linux VM
       - name: Create Linux VM
-        id: createvm
         run: |
           az vm create \
             --resource-group myResourceGroup \
-            --name myLinuxVM-${{ github.run_id }} \
+            --name myLinuxVM \
             --image Ubuntu2204 \
             --admin-username azureuser \
             --generate-ssh-keys \
-            --authentication-type ssh \
-            --location eastus \
-            --public-ip-sku Standard \
-            --output json > vm_output.json
-
-          # Extract Public IP safely
-          VM_IP=$(jq -r '.publicIpAddress' vm_output.json)
-          echo "PUBLIC_IP=$VM_IP" >> $GITHUB_ENV
-
-      # Show VM Public IP in workflow logs
-      - name: Show VM Public IP
-        run: echo "✅ VM Public IP is $PUBLIC_IP"
+            --size Standard_B1s
