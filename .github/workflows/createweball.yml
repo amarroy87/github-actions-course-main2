@@ -1,0 +1,26 @@
+name: Provision Azure WebApp using ARM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create Resource Group
+        run: az group create --name github-action-rg --location canadacentral
+
+      - name: Create App Service Plan
+        run: az appservice plan create --name myPlan --resource-group github-action-rg --sku B1 --is-linux
+
+      - name: Create WebApp
+        run: az webapp create --resource-group github-action-rg --plan myPlan --name appservice-enis --runtime "DOTNETCORE|6.0"
